@@ -10,7 +10,7 @@
   # --- Source Binary ---
   exe = fetchzip {
     url = "https://github.com/stuartleeks/wsl-notify-send/releases/download/v${version}/wsl-notify-send_windows_amd64.zip";
-    sha256 = "1023i80xmkm04jl75l0nzw8zg907kwll9g8280vxdhqj35pwj6rr";
+    hash = "sha256-ORvJbxkSw9Y3QAK9RCmfB6T3Ef8W0HKoJKDO2gGKQ4A=";
     stripRoot = false;
   };
 

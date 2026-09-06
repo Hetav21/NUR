@@ -19,6 +19,6 @@
   # flakeModules = { }; # flake-parts modules
   overlays = import ./overlays; # nixpkgs overlays
 
-  direnv-nixvim = pkgs.callPackage ./pkgs/direnv-nixvim { };
+  direnv-nvim = pkgs.callPackage ./pkgs/direnv-nvim { };
   wsl-notify-send = pkgs.callPackage ./pkgs/wsl-notify-send { };
 }

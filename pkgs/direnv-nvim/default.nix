@@ -4,7 +4,7 @@
   fetchFromGitHub,
 }:
 vimUtils.buildVimPlugin {
-  pname = "direnv-nixvim";
+  pname = "direnv-nvim";
   version = "2026-06-29";
 
   nvimRequireCheck = [ "direnv" ];
