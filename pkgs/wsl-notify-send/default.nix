@@ -3,6 +3,7 @@
   fetchzip,
   writeShellScriptBin,
   symlinkJoin,
+  nix-update-script,
 }: let
   pname = "wsl-notify-send";
   version = "0.1.871612270";
@@ -69,6 +70,8 @@ in
       notify-send-wrapper
       wsl-notify-send
     ];
+
+    passthru.updateScript = nix-update-script { };
 
     meta = with lib; {
       description = "Send Windows 10/11 toast notifications from WSL";
