@@ -47,8 +47,6 @@ nixConfig = {
 
 ## Usage
 
-### 1. Via Standard NUR Aggregator
-
 ```nix
 {
   inputs = {
@@ -71,53 +69,6 @@ nixConfig = {
       modules = [
         {
           nixpkgs.overlays = [ nur.overlays.default ];
-        }
-        ({ pkgs, ... }: {
-          environment.systemPackages = [
-            pkgs.nur.repos.hetav21.direnv-nvim
-            pkgs.nur.repos.hetav21.wsl-notify-send
-          ];
-        })
-      ];
-    };
-  };
-}
-```
-
-### 2. Overriding with Flake (`repoOverrides`)
-
-To track this repository directly (or use a local checkout) without waiting for upstream NUR aggregator indexing, use the official `repoOverrides` overlay pattern:
-
-```nix
-{
-  inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
-    nur = {
-      url = "github:nix-community/NUR";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-    hetav21-nur = {
-      url = "github:Hetav21/NUR";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-  };
-
-  outputs = { self, nixpkgs, nur, hetav21-nur, ... }: {
-    nixosConfigurations.myhost = nixpkgs.lib.nixosSystem {
-      system = "x86_64-linux";
-      modules = [
-        {
-          nixpkgs.overlays = [
-            (final: prev: {
-              nur = import nur {
-                nurpkgs = prev;
-                pkgs = prev;
-                repoOverrides = {
-                  hetav21 = import hetav21-nur { pkgs = prev; };
-                };
-              };
-            })
-          ];
         }
         ({ pkgs, ... }: {
           environment.systemPackages = [
