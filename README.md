@@ -1,37 +1,110 @@
-# nur-packages-template
+# NUR Packages
 
-**A template for [NUR](https://github.com/nix-community/NUR) repositories**
+[![Build and populate cache](https://github.com/Hetav21/NUR/actions/workflows/build.yml/badge.svg?branch=main)](https://github.com/Hetav21/NUR/actions/workflows/build.yml)
+[![Cachix Cache](https://img.shields.io/badge/cachix-hetav21-blue.svg)](https://hetav21.cachix.org)
 
-## Setup
+Personal [NUR (Nix User Repository)](https://github.com/nix-community/NUR) repository maintained by [@Hetav21](https://github.com/Hetav21).
 
-1. Click on [Use this template](https://github.com/nix-community/nur-packages-template/generate) to start a repo based on this template. (Do _not_ fork it.)
-2. Add your packages to the [pkgs](./pkgs) directory and to
-   [default.nix](./default.nix)
-   * Remember to mark the broken packages as `broken = true;` in the `meta`
-     attribute, or travis (and consequently caching) will fail!
-   * Library functions, modules and overlays go in the respective directories
-3. Choose your CI: Depending on your preference you can use github actions (recommended) or [Travis ci](https://travis-ci.com).
-   - Github actions: Change your NUR repo name and optionally add a cachix name in [.github/workflows/build.yml](./.github/workflows/build.yml) and change the cron timer
-     to a random value as described in the file
-   - Travis ci: Change your NUR repo name and optionally your cachix repo name in 
-   [.travis.yml](./.travis.yml). Than enable travis in your repo. You can add a cron job in the repository settings on travis to keep your cachix cache fresh
-5. Change your travis and cachix names on the README template section and delete
-   the rest
-6. [Add yourself to NUR](https://github.com/nix-community/NUR#how-to-add-your-own-repository)
+## Packages
 
-## README template
+| Package | Description | Upstream |
+| :--- | :--- | :--- |
+| [`direnv-nixvim`](./pkgs/direnv-nixvim) | Direnv integration for Neovim / Nixvim written in Lua | [NotAShelf/direnv.nvim](https://github.com/NotAShelf/direnv.nvim) |
+| [`wsl-notify-send`](./pkgs/wsl-notify-send) | Send Windows 10/11 toast notifications from WSL | [stuartleeks/wsl-notify-send](https://github.com/stuartleeks/wsl-notify-send) |
 
-# nur-packages
+---
 
-**My personal [NUR](https://github.com/nix-community/NUR) repository**
+## Binary Cache (Cachix)
 
-<!-- Remove this if you don't use github actions -->
-![Build and populate cache](https://github.com/<YOUR-GITHUB-USER>/nur-packages/workflows/Build%20and%20populate%20cache/badge.svg)
+Pre-built binaries are cached via Cachix.
 
-<!--
-Uncomment this if you use travis:
+### With Cachix CLI
+```bash
+cachix use hetav21
+```
 
-[![Build Status](https://travis-ci.com/<YOUR_TRAVIS_USERNAME>/nur-packages.svg?branch=master)](https://travis-ci.com/<YOUR_TRAVIS_USERNAME>/nur-packages)
--->
-[![Cachix Cache](https://img.shields.io/badge/cachix-<YOUR_CACHIX_CACHE_NAME>-blue.svg)](https://<YOUR_CACHIX_CACHE_NAME>.cachix.org)
+### Declaratively in NixOS / Home Manager
+```nix
+nix.settings = {
+  extra-substituters = [
+    "https://hetav21.cachix.org"
+  ];
+  extra-trusted-public-keys = [
+    "hetav21.cachix.org-1:O5O3aE7/wLp4F0uMLu4vJEr/Rn5UUWu97clxBxFALzc="
+  ];
+};
+```
 
+### In a Flake (`nixConfig`)
+```nix
+nixConfig = {
+  extra-substituters = [ "https://hetav21.cachix.org" ];
+  extra-trusted-public-keys = [ "hetav21.cachix.org-1:O5O3aE7/wLp4F0uMLu4vJEr/Rn5UUWu97clxBxFALzc=" ];
+};
+```
+
+---
+
+## Usage
+
+```nix
+{
+  inputs = {
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    nur = {
+      url = "github:nix-community/NUR";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+  };
+
+  # Optional: Binary cache for faster builds
+  nixConfig = {
+    extra-substituters = [ "https://hetav21.cachix.org" ];
+    extra-trusted-public-keys = [ "hetav21.cachix.org-1:O5O3aE7/wLp4F0uMLu4vJEr/Rn5UUWu97clxBxFALzc=" ];
+  };
+
+  outputs = { self, nixpkgs, nur, ... }: {
+    nixosConfigurations.myhost = nixpkgs.lib.nixosSystem {
+      system = "x86_64-linux";
+      modules = [
+        {
+          nixpkgs.overlays = [ nur.overlays.default ];
+        }
+        ({ pkgs, ... }: {
+          environment.systemPackages = [
+            pkgs.nur.repos.hetav21.direnv-nixvim
+            pkgs.nur.repos.hetav21.wsl-notify-send
+          ];
+        })
+      ];
+    };
+  };
+}
+```
+
+---
+
+## Development
+
+```bash
+# Build an individual package (Flakes)
+nix build .#<package-name>
+
+# Build an individual package (Classic Nix)
+nix-build -A <package-name>
+
+# Build all packages locally
+nix-build ci.nix -A buildOutputs
+
+# Check only packages pushed to Cachix by CI
+nix-build ci.nix -A cacheOutputs
+
+# Test restricted evaluation (NUR CI check)
+nix-env -f . -qa \* --meta --xml \
+  --allowed-uris https://static.rust-lang.org \
+  --option restrict-eval true \
+  --option allow-import-from-derivation true \
+  --drv-path --show-trace \
+  -I nixpkgs=$(nix-instantiate --find-file nixpkgs) \
+  -I $PWD
+```
