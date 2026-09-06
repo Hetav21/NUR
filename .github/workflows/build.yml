@@ -61,7 +61,7 @@ jobs:
     name: Notify NUR
     needs: tests
     runs-on: ubuntu-latest
-    if: github.event_name != 'pull_request' && github.repository == 'Hetav21/NUR'
+    if: github.event_name != 'pull_request' && !github.event.repository.fork
     strategy:
       matrix:
         # Set this to notify the global nur package registry that changes are
