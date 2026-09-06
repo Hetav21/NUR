@@ -1,10 +1,11 @@
 {
-  lib,
   fetchzip,
-  writeShellScriptBin,
-  symlinkJoin,
+  lib,
   nix-update-script,
-}: let
+  symlinkJoin,
+  writeShellScriptBin,
+}:
+let
   pname = "wsl-notify-send";
   version = "0.1.871612270";
 
@@ -26,22 +27,25 @@
           POSITIONAL+=("$@")
           break
           ;;
-        -u|--urgency|-t|--expire-time|-i|--icon|-c|--category|-h|--hint)
+        -u|--urgency|-t|--expire-time|-i|--icon|-c|--category|-h|--hint|-a|--app-name|-r|--replace-id)
           shift $(( $# >= 2 ? 2 : 1 ))
           ;;
+        --urgency=*|--expire-time=*|--icon=*|--category=*|--hint=*|--app-name=*|--replace-id=*)
+          shift 1
+          ;;
         -*)
-          shift
+          shift 1
           ;;
         *)
           POSITIONAL+=("$1")
-          shift
+          shift 1
           ;;
       esac
     done
 
     if [[ ''${#POSITIONAL[@]} -eq 0 ]]; then
       MESSAGE=""
-    elif [[ ''${#POSITIONAL[@]} -eq 1 ]]; then
+    elif [[ ''${#POSITIONAL[@]} -eq 1 || -z "''${POSITIONAL[*]:1}" ]]; then
       MESSAGE="''${POSITIONAL[0]}"
     else
       MESSAGE="''${POSITIONAL[0]}: ''${POSITIONAL[*]:1}"
@@ -61,23 +65,22 @@
     exec "${exe}/wsl-notify-send.exe" "$@"
   '';
 in
-  # --- Package Output ---
-  symlinkJoin {
-    inherit pname version;
-    name = "${pname}-${version}";
-    preferLocalBuild = false;
-    paths = [
-      notify-send-wrapper
-      wsl-notify-send
-    ];
+symlinkJoin {
+  inherit pname version;
+  preferLocalBuild = false;
+  paths = [
+    notify-send-wrapper
+    wsl-notify-send
+  ];
 
-    passthru.updateScript = nix-update-script { };
+  passthru.updateScript = nix-update-script { };
 
-    meta = with lib; {
-      description = "Send Windows 10/11 toast notifications from WSL";
-      homepage = "https://github.com/stuartleeks/wsl-notify-send";
-      license = licenses.mit;
-      platforms = ["x86_64-linux"];
-      mainProgram = "notify-send";
-    };
-  }
+  meta = with lib; {
+    description = "Send Windows 10/11 toast notifications from WSL";
+    homepage = "https://github.com/stuartleeks/wsl-notify-send";
+    license = licenses.mit;
+    sourceProvenance = with sourceTypes; [ binaryNativeCode ];
+    platforms = [ "x86_64-linux" ];
+    mainProgram = "notify-send";
+  };
+}
