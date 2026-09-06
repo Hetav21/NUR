@@ -9,7 +9,7 @@ Personal [NUR (Nix User Repository)](https://github.com/nix-community/NUR) repos
 
 | Package | Description | Upstream |
 | :--- | :--- | :--- |
-| [`direnv-nixvim`](./pkgs/direnv-nixvim) | Direnv integration for Neovim / Nixvim written in Lua | [NotAShelf/direnv.nvim](https://github.com/NotAShelf/direnv.nvim) |
+| [`direnv-nvim`](./pkgs/direnv-nvim) | Direnv integration for Neovim written in Lua | [NotAShelf/direnv.nvim](https://github.com/NotAShelf/direnv.nvim) |
 | [`wsl-notify-send`](./pkgs/wsl-notify-send) | Send Windows 10/11 toast notifications from WSL | [stuartleeks/wsl-notify-send](https://github.com/stuartleeks/wsl-notify-send) |
 
 ---
@@ -72,7 +72,7 @@ nixConfig = {
         }
         ({ pkgs, ... }: {
           environment.systemPackages = [
-            pkgs.nur.repos.hetav21.direnv-nixvim
+            pkgs.nur.repos.hetav21.direnv-nvim
             pkgs.nur.repos.hetav21.wsl-notify-send
           ];
         })
