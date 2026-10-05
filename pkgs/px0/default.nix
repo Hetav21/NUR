@@ -4,6 +4,7 @@
   fetchFromGitHub,
   nodejs,
   git,
+  makeWrapper,
   nix-update-script,
 }:
 
@@ -20,12 +21,20 @@ buildGoModule rec {
 
   vendorHash = "sha256-71+6I0u3en/Aw3PVMXx6dF+NQtCiE1T+kd7MENCKnlk=";
 
-  nativeBuildInputs = [ nodejs ];
+  nativeBuildInputs = [
+    nodejs
+    makeWrapper
+  ];
 
   nativeCheckInputs = [ git ];
 
   preBuild = ''
     node ./scripts/build-web.js
+  '';
+
+  postInstall = ''
+    wrapProgram $out/bin/px0 \
+      --prefix PATH : ${lib.makeBinPath [ git ]}
   '';
 
   ldflags = [
