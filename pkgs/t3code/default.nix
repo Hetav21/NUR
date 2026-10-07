@@ -2,7 +2,7 @@
   lib,
   callPackage,
   stdenvNoCC,
-  makeBinaryWrapper,
+  makeShellWrapper,
   t3code-unwrapped ? callPackage ./unwrapped.nix { },
   providerPackages ? [ ],
 }:
@@ -19,7 +19,7 @@ stdenvNoCC.mkDerivation {
   dontUnpack = true;
   strictDeps = true;
 
-  nativeBuildInputs = [ makeBinaryWrapper ];
+  nativeBuildInputs = [ makeShellWrapper ];
 
   installPhase = ''
     runHook preInstall
@@ -41,7 +41,6 @@ stdenvNoCC.mkDerivation {
         ) "--prefix PATH : ${lib.escapeShellArg (lib.makeBinPath providerPackages)}"
       } \
       --run "$sslCertHook"
-    ln -s ${t3code-unwrapped}/share "$out/share"
 
     makeWrapper ${t3code-unwrapped.desktop}/bin/t3code-desktop \
       "$desktop/bin/t3code-desktop" \
@@ -52,6 +51,7 @@ stdenvNoCC.mkDerivation {
       } \
       --run "$sslCertHook" \
       --inherit-argv0
+    ln -s t3code-desktop "$desktop/bin/t3code"
     ln -s ${t3code-unwrapped.desktop}/share "$desktop/share"
 
     # Also install desktop entry and wrapper into $out for standard NUR package usage
@@ -67,7 +67,12 @@ stdenvNoCC.mkDerivation {
     ln -s t3code-desktop "$out/bin/t3code"
 
     mkdir -p "$out/share"
-    cp -r ${t3code-unwrapped.desktop}/share/* "$out/share/" 2>/dev/null || true
+    if [ -d "${t3code-unwrapped}/share" ]; then
+      cp -r ${t3code-unwrapped}/share/* "$out/share/"
+    fi
+    if [ -d "${t3code-unwrapped.desktop}/share" ]; then
+      cp -r ${t3code-unwrapped.desktop}/share/* "$out/share/"
+    fi
 
     ${lib.optionalString stdenvNoCC.hostPlatform.isDarwin ''
       sourceApp=${lib.escapeShellArg "${t3code-unwrapped.desktop}/Applications/${t3code-unwrapped.appName}.app"}
@@ -87,7 +92,6 @@ stdenvNoCC.mkDerivation {
     inherit providerPackages;
     inherit (t3code-unwrapped) pnpmDeps resourceMonitor src;
     unwrapped = t3code-unwrapped;
-    desktop = t3code-unwrapped.desktop;
   };
 
   meta = t3code-unwrapped.meta // {

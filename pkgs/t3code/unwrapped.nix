@@ -122,6 +122,13 @@ stdenv.mkDerivation {
       pnpmWorkspaces
       ;
     fetcherVersion = 4;
+    prePnpmInstall = ''
+      pnpm config set fetch-retries 5
+      pnpm config set fetch-retry-maxtimeout 120000
+      pnpm config set fetch-timeout 300000
+      pnpm config set network-concurrency 4
+    '';
+    pnpmInstallFlags = [ "--network-concurrency=4" ];
     hash = "sha256-2dGEHOQrnidTei54NlZTJh5u5/i810hb2LddK4XfUNQ=";
   };
 
@@ -194,6 +201,9 @@ stdenv.mkDerivation {
 
   installPhase = ''
     runHook preInstall
+
+    echo "injectWorkspacePackages: true" >> pnpm-workspace.yaml
+    echo "inject-workspace-packages: true" >> pnpm-workspace.yaml
 
     pnpm --filter t3 deploy --prod --offline "$out/libexec/t3code/apps/server"
 
