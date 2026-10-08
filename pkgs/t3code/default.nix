@@ -45,6 +45,7 @@ stdenvNoCC.mkDerivation {
           providerPackages != [ ]
         ) "--prefix PATH : ${lib.escapeShellArg (lib.makeBinPath providerPackages)}"
       } \
+      --unset ELECTRON_RUN_AS_NODE \
       --run "$sslCertHook" \
       --inherit-argv0
 
