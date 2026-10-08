@@ -178,6 +178,8 @@ stdenv.mkDerivation {
   installPhase = ''
     runHook preInstall
 
+    echo "injectWorkspacePackages: true" >> pnpm-workspace.yaml
+
     pnpm --filter t3 deploy --prod --offline "$out/libexec/t3code/apps/server"
 
     mkdir -p "$out/libexec/t3code/apps/server/dist/resource-monitor/${platformKey}"
