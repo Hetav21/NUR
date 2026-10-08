@@ -60,7 +60,7 @@ let
       x86_64-linux = "linux-x64";
       aarch64-linux = "linux-arm64";
     }
-    .${stdenv.hostPlatform.system};
+    .${stdenv.hostPlatform.system} or null;
 
   pnpmWorkspaces = [
     "@t3tools/monorepo"
@@ -254,5 +254,6 @@ stdenv.mkDerivation {
       "x86_64-linux"
       "aarch64-linux"
     ];
+    broken = !stdenv.hostPlatform.isLinux;
   };
 }
