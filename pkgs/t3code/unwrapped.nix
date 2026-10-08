@@ -147,6 +147,10 @@ stdenv.mkDerivation {
     spdxVer=$(sed -n 's/^const SPDX_LICENSE_LIST_VERSION = "\(.*\)";/\1/p' scripts/lib/third-party-licenses.ts)
     mkdir -p .generated/third-party-licenses/spdx
     ln -s ${spdxLicenses}/json/details ".generated/third-party-licenses/spdx/$spdxVer"
+
+    # pnpm 10+ requires injectWorkspacePackages: true in pnpm-workspace.yaml
+    # to deploy workspace packages offline without network access.
+    echo "injectWorkspacePackages: true" >> pnpm-workspace.yaml
   '';
 
   preBuild = ''
@@ -177,8 +181,6 @@ stdenv.mkDerivation {
 
   installPhase = ''
     runHook preInstall
-
-    echo "injectWorkspacePackages: true" >> pnpm-workspace.yaml
 
     pnpm --filter t3 deploy --prod --offline "$out/libexec/t3code/apps/server"
 
