@@ -13,13 +13,17 @@
   libsecret,
   python3,
   cacert,
+  electron ? null,
   electron_44 ? electron,
-  electron,
   makeBinaryWrapper,
   installShellFiles,
   makeDesktopItem,
   rustPlatform,
   versionCheckHook,
+  cctools ? null,
+  libicns ? null,
+  writeDarwinBundle ? null,
+  xcbuild ? null,
 }:
 
 let
@@ -59,8 +63,9 @@ let
     {
       x86_64-linux = "linux-x64";
       aarch64-linux = "linux-arm64";
+      aarch64-darwin = "darwin-arm64";
     }
-    .${stdenv.hostPlatform.system} or null;
+    .${stdenv.hostPlatform.system};
 
   pnpmWorkspaces = [
     "@t3tools/monorepo"
@@ -70,7 +75,11 @@ let
   ];
 
   appName = "T3 Code (Alpha)";
-  desktopIcon = "assets/prod/black-universal-1024.png";
+  desktopIcon =
+    if stdenv.hostPlatform.isDarwin then
+      "assets/prod/black-macos-1024.png"
+    else
+      "assets/prod/black-universal-1024.png";
 
   desktopItem = makeDesktopItem {
     name = "t3code";
@@ -113,24 +122,39 @@ stdenv.mkDerivation {
       pnpmWorkspaces
       ;
     fetcherVersion = 4;
+    prePnpmInstall = ''
+      pnpm config set fetch-retries 5
+      pnpm config set fetch-retry-maxtimeout 120000
+      pnpm config set fetch-timeout 300000
+      pnpm config set network-concurrency 4
+    '';
+    pnpmInstallFlags = [ "--network-concurrency=4" ];
     hash = "sha256-2dGEHOQrnidTei54NlZTJh5u5/i810hb2LddK4XfUNQ=";
   };
 
   nativeBuildInputs = [
-    autoPatchelfHook
     cacert
     installShellFiles
     makeBinaryWrapper
     node-gyp
     nodejs_24
-    pkg-config
     pnpm
     pnpmBuildHook
     pnpmConfigHook
     python3
+  ]
+  ++ lib.optionals stdenv.hostPlatform.isLinux [
+    autoPatchelfHook
+    pkg-config
+  ]
+  ++ lib.optionals stdenv.hostPlatform.isDarwin [
+    cctools.libtool
+    libicns
+    writeDarwinBundle
+    xcbuild
   ];
 
-  buildInputs = [
+  buildInputs = lib.optionals stdenv.hostPlatform.isLinux [
     libsecret
     stdenv.cc.cc.lib
   ];
@@ -178,9 +202,8 @@ stdenv.mkDerivation {
   installPhase = ''
     runHook preInstall
 
-    # pnpm 10+ requires injectWorkspacePackages: true to deploy from workspaces.
-    # We set it right before deploy so pnpmConfigHook's frozen install is not affected.
     echo "injectWorkspacePackages: true" >> pnpm-workspace.yaml
+    echo "inject-workspace-packages: true" >> pnpm-workspace.yaml
 
     pnpm --filter t3 deploy --prod --offline "$out/libexec/t3code/apps/server"
 
@@ -205,8 +228,10 @@ stdenv.mkDerivation {
       "$out/libexec/t3code/apps/server/dist/resource-monitor/${platformKey}/t3-resource-monitor" \
       "$desktop/libexec/t3code/apps/desktop/prod-resources/resource-monitor/t3-resource-monitor"
 
-    install -Dm755 native/browser-secret/build/${stdenv.hostPlatform.node.arch}/t3-browser-secret \
-      "$desktop/libexec/t3code/apps/desktop/prod-resources/browser-secret/t3-browser-secret"
+    ${lib.optionalString stdenv.hostPlatform.isLinux ''
+      install -Dm755 native/browser-secret/build/${stdenv.hostPlatform.node.arch}/t3-browser-secret \
+        "$desktop/libexec/t3code/apps/desktop/prod-resources/browser-secret/t3-browser-secret"
+    ''}
 
     find "$out/libexec/t3code" "$desktop/libexec/t3code" -xtype l -delete
 
@@ -220,10 +245,23 @@ stdenv.mkDerivation {
     install -Dm444 assets/prod/logo.svg "$desktop/share/icons/hicolor/scalable/apps/t3code.svg"
     cp -r ${desktopItem}/share/applications "$desktop/share/"
 
+    ${lib.optionalString stdenv.hostPlatform.isDarwin ''
+      find "$out/libexec/t3code" "$desktop/libexec/t3code" \
+        -path '*/node-pty/prebuilds/darwin-*/spawn-helper' \
+        -exec chmod 755 {} +
+
+      mkdir -p "$desktop/Applications/${appName}.app/Contents/"{MacOS,Resources}
+      png2icns \
+        "$desktop/Applications/${appName}.app/Contents/Resources/t3code.icns" \
+        ${desktopIcon}
+      ${stdenv.shell} ${lib.getExe writeDarwinBundle} \
+        "$desktop" "${appName}" t3code-desktop t3code
+    ''}
+
     runHook postInstall
   '';
 
-  postFixup = ''
+  postFixup = lib.optionalString stdenv.hostPlatform.isLinux ''
     autoPatchelf "$out/libexec/t3code/apps/server/node_modules/node-pty/prebuilds/${platformKey}"
   '';
 
@@ -240,6 +278,7 @@ stdenv.mkDerivation {
   versionCheckProgramArg = [ "--version" ];
 
   passthru = {
+    category = "AI Coding Agents";
     inherit appName resourceMonitor;
   };
 
@@ -253,7 +292,7 @@ stdenv.mkDerivation {
     platforms = [
       "x86_64-linux"
       "aarch64-linux"
+      "aarch64-darwin"
     ];
-    broken = !stdenv.hostPlatform.isLinux;
   };
 }

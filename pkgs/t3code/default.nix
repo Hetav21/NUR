@@ -19,17 +19,15 @@ stdenvNoCC.mkDerivation {
   installPhase = ''
     runHook preInstall
 
-    mkdir -p "$out/bin" "$out/share"
+    mkdir -p "$out/bin"
 
-    sslCertHook='
-      if [ -z "''${SSL_CERT_FILE:-}" ]; then
-        if [ -f /etc/ssl/certs/ca-certificates.crt ]; then
-          export SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
-        elif [ -f /etc/ssl/certs/ca-bundle.crt ]; then
-          export SSL_CERT_FILE=/etc/ssl/certs/ca-bundle.crt
-        fi
+    sslCertHook='if [ -z "''${SSL_CERT_FILE:-}" ]; then
+      if [ -f /etc/ssl/certs/ca-certificates.crt ]; then
+        export SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
+      elif [ -f /etc/ssl/certs/ca-bundle.crt ]; then
+        export SSL_CERT_FILE=/etc/ssl/certs/ca-bundle.crt
       fi
-    '
+    fi'
 
     makeWrapper ${t3code-unwrapped}/bin/t3 "$out/bin/t3" \
       ${
@@ -39,20 +37,34 @@ stdenvNoCC.mkDerivation {
       } \
       --run "$sslCertHook"
 
-    makeWrapper ${t3code-unwrapped.desktop}/bin/t3code-desktop "$out/bin/t3code-desktop" \
+    makeWrapper ${t3code-unwrapped.desktop}/bin/t3code-desktop \
+      "$out/bin/t3code-desktop" \
       ${
         lib.optionalString (
           providerPackages != [ ]
         ) "--prefix PATH : ${lib.escapeShellArg (lib.makeBinPath providerPackages)}"
       } \
-      --unset ELECTRON_RUN_AS_NODE \
       --run "$sslCertHook" \
       --inherit-argv0
-
     ln -s t3code-desktop "$out/bin/t3code"
 
-    cp -rs ${t3code-unwrapped}/share/. "$out/share/"
-    cp -rs ${t3code-unwrapped.desktop}/share/. "$out/share/"
+    mkdir -p "$out/share"
+    if [ -d "${t3code-unwrapped}/share" ]; then
+      cp -r ${t3code-unwrapped}/share/* "$out/share/"
+    fi
+    if [ -d "${t3code-unwrapped.desktop}/share" ]; then
+      cp -r ${t3code-unwrapped.desktop}/share/* "$out/share/"
+    fi
+
+    ${lib.optionalString stdenvNoCC.hostPlatform.isDarwin ''
+      sourceApp=${lib.escapeShellArg "${t3code-unwrapped.desktop}/Applications/${t3code-unwrapped.appName}.app"}
+      targetApp="$out/Applications/${t3code-unwrapped.appName}.app"
+      mkdir -p "$targetApp/Contents/MacOS"
+      ln -s "$sourceApp/Contents/Info.plist" "$targetApp/Contents/Info.plist"
+      ln -s "$sourceApp/Contents/Resources" "$targetApp/Contents/Resources"
+      ln -s ../../../../bin/t3code-desktop \
+        "$targetApp/Contents/MacOS/${t3code-unwrapped.appName}"
+    ''}
 
     runHook postInstall
   '';
